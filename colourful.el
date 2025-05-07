@@ -214,6 +214,11 @@ Point should be putted at (|foo bar)"
           (when symbols (setq result (nconc result symbols)))))
       (delete-dups result))))
 
+(defcustom colourful-compute-symbols-timeout 1.5
+  "Timeout for collecting symbol informations."
+  :type 'number
+  :group 'colourful)
+
 ;; In Common Lisp, we can't query the symbol information by the time
 ;; we're parsing it, as the sly/slime-eval function will take
 ;; significant time. So we need to prepare the information of all
@@ -238,7 +243,7 @@ Point should be putted at (|foo bar)"
           (unless (or (cl-member (symbol-name obj) colourful-cl-keywords-names :test #'string=)
                       (cl-member (symbol-name obj) colourful-cl-errors-names :test #'string=))
             (push (split-string (symbol-name obj) ":") lst))))
-      (with-timeout (4)
+      (with-timeout (colourful-compute-symbols-timeout)
         (funcall
          lisp-eval
          `(cl:let (result)
