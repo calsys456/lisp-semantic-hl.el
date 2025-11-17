@@ -143,7 +143,9 @@ Point should be putted at (|foo bar)"
                          ((and (fboundp 'slime-connected-p)
                                (funcall 'slime-connected-p))
                           'slime-eval)))
-        (buffer-pak (when-let (pak (sly-current-package))
+        (buffer-pak (when-let (pak (funcall (if (fboundp 'sly-current-package)
+						'sly-current-package
+					      'slime-current-package)))
                       (upcase (string-trim pak "[#:\"]" "[#:\"]"))))
         lst)
     (when lisp-eval
