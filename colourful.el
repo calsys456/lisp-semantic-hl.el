@@ -24,6 +24,86 @@
   :group 'colourful
   :type '(list string))
 
+;; From lisp-mode.el
+(let ((lisp-fdefs '("defmacro" "defun"))
+      (lisp-vdefs '("defvar"))
+      (lisp-kw '("cond" "if" "while" "let" "let*" "progn" "prog1"
+                 "prog2" "lambda" "unwind-protect" "condition-case"
+                 "when" "unless" "with-output-to-string" "handler-bind"
+                 "ignore-errors" "dotimes" "dolist" "declare"))
+      (lisp-errs '("warn" "error" "signal"))
+      (el-fdefs '("defsubst" "cl-defsubst" "define-inline"
+                  "define-advice" "defadvice" "defalias"
+                  "define-derived-mode" "define-minor-mode"
+                  "define-generic-mode" "define-global-minor-mode"
+                  "define-globalized-minor-mode" "define-skeleton"
+                  "define-widget" "ert-deftest"))
+      (el-vdefs '("defconst" "defcustom" "defvaralias" "defvar-local"
+                  "defface" "define-error"))
+      (el-tdefs '("defgroup" "deftheme"))
+      (el-errs '("user-error"))
+      (eieio-fdefs '("defgeneric" "defmethod"))
+      (eieio-tdefs '("defclass"))
+      (cl-lib-fdefs '("defmacro" "defsubst" "defun" "defmethod" "defgeneric"))
+      (cl-lib-tdefs '("defstruct" "deftype"))
+      (cl-lib-errs '("assert" "check-type"))
+      (cl-fdefs '("defsetf" "define-method-combination"
+                  "define-condition" "define-setf-expander"
+                  "define-compiler-macro" "define-modify-macro"))
+      (cl-vdefs '("define-symbol-macro" "defconstant" "defparameter"))
+      (cl-tdefs '("defpackage" "defstruct" "deftype"))
+      (cl-kw '("block" "break" "case" "ccase" "compiler-let" "ctypecase"
+               "declaim" "destructuring-bind" "do" "do*"
+               "ecase" "etypecase" "eval-when" "flet" "flet*"
+               "go" "handler-case" "in-package"
+               "labels" "letf" "locally" "loop"
+               "macrolet" "multiple-value-bind" "multiple-value-prog1"
+               "proclaim" "prog" "prog*" "progv"
+               "restart-case" "restart-bind" "return" "return-from"
+               "symbol-macrolet" "tagbody" "the" "typecase"
+               "with-accessors" "with-compilation-unit"
+               "with-condition-restarts" "with-hash-table-iterator"
+               "with-input-from-string" "with-open-file"
+               "with-open-stream" "with-package-iterator"
+               "with-simple-restart" "with-slots" "with-standard-io-syntax"))
+      (cl-errs '("abort" "cerror")))
+  (let ((el-defs (append lisp-fdefs lisp-vdefs
+                         el-fdefs el-vdefs el-tdefs
+                         (mapcar (lambda (s) (concat "cl-" s))
+                                 (append cl-lib-fdefs cl-lib-tdefs))
+                         eieio-fdefs eieio-tdefs))
+        (cl-defs (append lisp-fdefs lisp-vdefs
+                         cl-lib-fdefs cl-lib-tdefs
+                         eieio-fdefs eieio-tdefs
+                         cl-fdefs cl-vdefs cl-tdefs))
+        (cl-kws (append lisp-kw cl-kw))
+        (el-errs (append (mapcar (lambda (s) (concat "cl-" s)) cl-lib-errs)
+                         lisp-errs el-errs))
+        (cl-errs (append lisp-errs cl-lib-errs cl-errs)))
+    (defcustom colourful-el-keywords-names
+      el-defs
+      "Elisp keyword symbol names. From lisp-mode.el"
+      :group 'colourful
+      :type '(list string))
+
+    (defcustom colourful-cl-keywords-names
+      (append cl-defs cl-kws)
+      "Common Lisp keyword symbol names. From lisp-mode.el"
+      :group 'colourful
+      :type '(list string))
+
+    (defcustom colourful-el-errors-names
+      el-errs
+      "Elisp error symbol names. From lisp-mode.el"
+      :group 'colourful
+      :type '(list string))
+
+    (defcustom colourful-cl-errors-names
+      cl-errs
+      "Common Lisp error symbol names. From lisp-mode.el"
+      :group 'colourful
+      :type '(list string))))
+
 (defun colourful-collect-forms (point)
   "Collect forms inside ansexp from starting.
 
@@ -95,18 +175,21 @@ Point should be putted at (|foo bar)"
                            (string-equal str "nil"))
                        'font-lock-keyword-face)
                       ((null sym) nil)
-                      ((special-form-p sym)
+                      ((or (special-form-p sym)
+                           (cl-member sym colourful-el-keywords-names :test #'string=))
                        'font-lock-keyword-face)
+                      ((cl-member sym colourful-el-errors-names :test #'string=)
+                       'font-lock-warning-face)
                       ((macrop sym)
                        'font-lock-type-face)
                       ((keywordp sym)
                        'font-lock-builtin-face)
                       ((= (aref str 0) ?\&)
-                       'font-lock-type-face)
+                       'font-lock-operator-face)
                       ((or (find-class sym nil) (cl-find-class sym))
                        'font-lock-type-face)
                       ((fboundp sym) 'font-lock-function-name-face)
-                      ((boundp sym) 'font-lock-variable-name-face))))
+                      ((boundp sym) 'font-lock-variable-use-face))))
       (when face (colourful-apply-highlight start end face)))))
 
 (defvar colourful-symbols nil
@@ -129,7 +212,7 @@ Point should be putted at (|foo bar)"
                                  (flatten-tree
                                   (read-positioning-symbols (current-buffer)))))))
           (when symbols (setq result (nconc result symbols)))))
-      result)))
+      (delete-dups result))))
 
 ;; In Common Lisp, we can't query the symbol information by the time
 ;; we're parsing it, as the sly/slime-eval function will take
@@ -144,66 +227,67 @@ Point should be putted at (|foo bar)"
                                (funcall 'slime-connected-p))
                           'slime-eval)))
         (buffer-pak (when-let (pak (funcall (if (fboundp 'sly-current-package)
-						'sly-current-package
-					      'slime-current-package)))
+                                                'sly-current-package
+                                              'slime-current-package)))
                       (upcase (string-trim pak "[#:\"]" "[#:\"]"))))
         lst)
     (when lisp-eval
       (let ((obarray (obarray-make)))
         (dolist (obj (colourful-read-string
                       (buffer-substring-no-properties start end)))
-          (cl-pushnew (split-string (symbol-name obj) ":") lst)))
+          (unless (or (cl-member (symbol-name obj) colourful-cl-keywords-names :test #'string=)
+                      (cl-member (symbol-name obj) colourful-cl-errors-names :test #'string=))
+            (push (split-string (symbol-name obj) ":") lst))))
       (with-timeout (4)
         (funcall
-       lisp-eval
-       `(cl:let (result)
-         (cl:dolist (split (cl:quote ,lst))
-           (cl:let*
-            ((symname (cl:string-upcase (cl:car (cl:last split))))
-             (sympak (cl:or (cl:when (cl:> (cl:length split) 1)
-                                     (cl:if (cl:string= (cl:car split) "")
-                                            "KEYWORD"
-                                            (cl:find-package (cl:string-upcase (cl:car split)))))
-                            (cl:find-package ,buffer-pak)
-                            cl:*package*))
-             (face
-              (cl:when (cl:plusp (cl:length symname))
-                (cl:cond
-                 ((cl:string= (cl:car split) "") 'font-lock-builtin-face)
-                 ((cl:= (cl:char-code (cl:char symname 0)) 38) 'font-lock-type-face)
-                 (cl:t (cl:multiple-value-bind (sym status)
-                           (cl:find-symbol symname sympak)
-                         (cl:if status
-                                (cl:cond ((cl:member sym '(cl:t cl:nil))
-                                          'font-lock-keyword-face)
-                                         ((cl:special-operator-p sym)
-                                          'font-lock-keyword-face)
-                                         ((cl:macro-function sym)
-                                          'font-lock-type-face)
-                                         ((cl:or (cl:find-class sym cl:nil)
-                                                 (cl:find-package sym))
-                                          'font-lock-type-face)
-                                         ((cl:fboundp sym) 'font-lock-function-call-face)
-                                         ((cl:boundp sym) 'font-lock-variable-use-face)
-                                         (cl:t cl:nil))
-                                (cl:cond ((cl:find-package symname)
-                                          'font-lock-type-face)))))))
-              ))
-             (cl:push (cl:cons split face) result)))
-         result)
-       )))))
+         lisp-eval
+         `(cl:let (result)
+           (cl:dolist (split (cl:quote ,lst))
+             (cl:let*
+              ((symname (cl:string-upcase (cl:car (cl:last split))))
+               (sympak (cl:or (cl:when (cl:> (cl:length split) 1)
+                                       (cl:if (cl:string= (cl:car split) "")
+                                              "KEYWORD"
+                                              (cl:find-package (cl:string-upcase (cl:car split)))))
+                              (cl:find-package ,buffer-pak)
+                              cl:*package*))
+               (face
+                (cl:when (cl:plusp (cl:length symname))
+                  (cl:cond
+                   ((cl:string= (cl:car split) "") 'font-lock-builtin-face)
+                   ((cl:= (cl:char-code (cl:char symname 0)) 38) 'font-lock-type-face)
+                   (cl:t (cl:multiple-value-bind (sym status)
+                             (cl:find-symbol symname sympak)
+                           (cl:if status
+                                  (cl:cond ((cl:or (cl:member sym '(cl:t cl:nil))
+                                                   (cl:special-operator-p sym))
+                                            'font-lock-keyword-face)
+                                           ((cl:macro-function sym)
+                                            'font-lock-type-face)
+                                           ((cl:or (cl:find-class sym cl:nil)
+                                                   (cl:find-package sym))
+                                            'font-lock-type-face)
+                                           ((cl:fboundp sym) 'font-lock-function-call-face)
+                                           ((cl:boundp sym) 'font-lock-variable-use-face)
+                                           (cl:t cl:nil))
+                                  (cl:cond ((cl:find-package symname)
+                                            'font-lock-type-face)))))))))
+               (cl:push (cl:cons split face) result)))
+           result))))))
 
 (defun colourful-fontify-symbol-cl (start end)
   "Fontify Common Lisp Symbol"
-  (when-let (lisp-eval (cond ((and (fboundp 'sly-connected-p)
-                                   (funcall 'sly-connected-p))
-                              'sly-eval)
-                             ((and (fboundp 'slime-connected-p)
-                                   (funcall 'slime-connected-p))
-                              'slime-eval)))
+  (when (or (and (fboundp 'sly-connected-p)
+                 (funcall 'sly-connected-p))
+            (and (fboundp 'slime-connected-p)
+                 (funcall 'slime-connected-p)))
     (let* ((str (buffer-substring-no-properties start end))
            (split (split-string str ":"))
-           (face (cdr (assoc split colourful-symbols))))
+           (face (cond ((member str colourful-cl-keywords-names)
+                        'font-lock-keyword-face)
+                       ((member str colourful-cl-errors-names)
+                        'font-lock-warning-face)
+                       (t (cdr (assoc split colourful-symbols))))))
       (if (and (> (length split) 1)
                (> (length (car split)) 0))
           (let ((sep (+ start (+ (length (car split))
@@ -258,7 +342,7 @@ functions."
                               "prog" "prog*"
                               "dolist" "cl-dolist" "dotimes" "cl-dotimes" "seq-doseq"
                               "do-symbols" "do-all-symbols" "cl-do-symbols" "cl-do-all-symbols"
-			      "with-slots" "with-accessors")
+                              "with-slots" "with-accessors")
                         :test #'string-equal)
              (colourful-fontify-let forms))
             ((cl-member 1st '("lambda"
@@ -268,7 +352,7 @@ functions."
                         :test #'string-equal)
              (colourful-fontify-ordinary-lambda-list-at-1 forms))
             ((cl-member 1st '("defun" "defmacro" "defsubst" "defalias")
-			:test #'string-equal)
+                        :test #'string-equal)
              (colourful-fontify-ordinary-lambda-list-at-2 forms))
             (t (dolist (l forms) (apply 'colourful-fontify-single-form l)))))))
 
@@ -296,7 +380,7 @@ functions."
     (let* ((start (car form)))
       (goto-char start)
       (when (cl-plusp (skip-chars-forward "#'@,`"))
-        (colourful-apply-highlight start (point) 'font-lock-warning-face))
+        (colourful-apply-highlight start (point) 'font-lock-preprocessor-face))
       (when (= (char-after) ?\()
         (when-let (sub (scan-lists (point) 1 -1))
           (let ((children (colourful-collect-forms sub)))
@@ -309,43 +393,43 @@ functions."
     (cl-destructuring-bind (start end) (pop lst)
       (colourful-fontify-single-form start end)
       (setq 1st (string-trim-left
-		 (buffer-substring-no-properties start end)
-		 "#'@,`")))
+                 (buffer-substring-no-properties start end)
+                 "#'@,`")))
     (when lst
       (cl-destructuring-bind (start end) (pop lst)
-	(goto-char start)
-	(when (cl-plusp (skip-chars-forward "#'@,`"))
-	  (colourful-apply-highlight start (point) 'font-lock-warning-face))
-	(if (= (char-after) ?\()
-	    (when-let (sub (scan-lists (point) 1 -1))
-	      (when-let (children (colourful-collect-forms sub))
-		(if (or (cl-member 1st '("dolist" "cl-dolist" "dotimes" "cl-dotimes"
-					 "do-symbols" "do-all-symbols")
-				   :test #'string-equal)
-			(and (cl-member 1st '("when-let" "when-let*" "if-let" "if-let*")
-					:test #'string-equal)
-			     (progn (goto-char (caar children))
-				    (skip-chars-forward "#'@,`")
-				    (/= (char-after) ?\( ))))
-		    (cl-destructuring-bind (start end) (car children)
-		      (colourful-apply-highlight start end 'font-lock-variable-name-face)
-		      (dolist (c (cdr children))
-			(apply 'colourful-fontify-single-form c)))
-		  (dolist (child children)
-		    (cl-destructuring-bind (start end) child
-		      (goto-char start)
-		      (when (cl-plusp (skip-chars-forward "#'@,`"))
-			(colourful-apply-highlight start (point) 'font-lock-warning-face))
-		      (if (= (char-after) ?\()
-			  (when-let (sub (scan-lists (point) 1 -1))
-			    (when-let (children (colourful-collect-forms sub))
-			      (cl-destructuring-bind (start end)
-				  (car children)
-				(colourful-apply-highlight start end 'font-lock-variable-name-face))
-			      (dolist (c (cdr children))
-				(apply 'colourful-fontify-single-form c))))
-			(colourful-apply-highlight (point) end 'font-lock-variable-name-face)))))))
-	  (colourful-fontify-symbol (point) end))))
+        (goto-char start)
+        (when (cl-plusp (skip-chars-forward "#'@,`"))
+          (colourful-apply-highlight start (point) 'font-lock-warning-face))
+        (if (= (char-after) ?\()
+            (when-let (sub (scan-lists (point) 1 -1))
+              (when-let (children (colourful-collect-forms sub))
+                (if (or (cl-member 1st '("dolist" "cl-dolist" "dotimes" "cl-dotimes"
+                                         "do-symbols" "do-all-symbols")
+                                   :test #'string-equal)
+                        (and (cl-member 1st '("when-let" "when-let*" "if-let" "if-let*")
+                                        :test #'string-equal)
+                             (progn (goto-char (caar children))
+                                    (skip-chars-forward "#'@,`")
+                                    (/= (char-after) ?\( ))))
+                    (cl-destructuring-bind (start end) (car children)
+                      (colourful-apply-highlight start end 'font-lock-variable-name-face)
+                      (dolist (c (cdr children))
+                        (apply 'colourful-fontify-single-form c)))
+                  (dolist (child children)
+                    (cl-destructuring-bind (start end) child
+                      (goto-char start)
+                      (when (cl-plusp (skip-chars-forward "#'@,`"))
+                        (colourful-apply-highlight start (point) 'font-lock-warning-face))
+                      (if (= (char-after) ?\()
+                          (when-let (sub (scan-lists (point) 1 -1))
+                            (when-let (children (colourful-collect-forms sub))
+                              (cl-destructuring-bind (start end)
+                                  (car children)
+                                (colourful-apply-highlight start end 'font-lock-variable-name-face))
+                              (dolist (c (cdr children))
+                                (apply 'colourful-fontify-single-form c))))
+                        (colourful-apply-highlight (point) end 'font-lock-variable-name-face)))))))
+          (colourful-fontify-symbol (point) end))))
     (dolist (l lst)
       (apply 'colourful-fontify-single-form l))))
 
@@ -359,20 +443,20 @@ expresion (typically lambda expression)."
     (cl-destructuring-bind (start end) (pop lst)
       (goto-char start)
       (when (cl-plusp (skip-chars-forward "#'@,`"))
-	(colourful-apply-highlight start (point) 'font-lock-warning-face))
+        (colourful-apply-highlight start (point) 'font-lock-warning-face))
       (if (= (char-after) ?\()
-	  (when-let (sub (scan-lists (point) 1 -1))
-	    (let ((children (colourful-collect-forms sub)))
-	      (dolist (child children)
-		(cl-destructuring-bind (start end) child
-		  (goto-char start)
-		  (when (cl-plusp (skip-chars-forward "#'@,`"))
-		    (colourful-apply-highlight start (point) 'font-lock-warning-face))
-		  (pcase (char-after)
-		    (?\( (colourful-fontify-list (point)))
-		    (?\& (colourful-apply-highlight start end 'font-lock-type-face))
-		    (_ (colourful-apply-highlight start end 'font-lock-variable-name-face)))))))
-	(colourful-fontify-symbol (point) end))))
+          (when-let (sub (scan-lists (point) 1 -1))
+            (let ((children (colourful-collect-forms sub)))
+              (dolist (child children)
+                (cl-destructuring-bind (start end) child
+                  (goto-char start)
+                  (when (cl-plusp (skip-chars-forward "#'@,`"))
+                    (colourful-apply-highlight start (point) 'font-lock-warning-face))
+                  (pcase (char-after)
+                    (?\( (colourful-fontify-list (point)))
+                    (?\& (colourful-apply-highlight start end 'font-lock-type-face))
+                    (_ (colourful-apply-highlight start end 'font-lock-variable-name-face)))))))
+        (colourful-fontify-symbol (point) end))))
   (dolist (l lst)
     (apply 'colourful-fontify-single-form l)))
 
@@ -402,9 +486,9 @@ expresion (typically defun)."
           ;; If the region is inside one form 
           (let ((form-end (scan-sexps form-start 1)))
             (if (or sly-mode slime-mode)
-              (let ((colourful-symbols
-                     (colourful-compute-symbols-in-form form-start form-end)))
-                (colourful-fontify-single-form form-start form-end))
+                (let ((colourful-symbols
+                       (colourful-compute-symbols-in-form form-start form-end)))
+                  (colourful-fontify-single-form form-start form-end))
               (colourful-fontify-single-form form-start form-end)))
         ;; If the region has crossed the top-level
         (progn

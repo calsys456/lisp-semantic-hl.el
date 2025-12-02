@@ -1,22 +1,27 @@
 # Colourful
 
-Emacs colourful highlight plugin for lisp.
+Semantic Common Lisp & Elisp syntax highlight in Emacs.
 
 ![screenshot](./screenshot.png)
 
 ## Usage
 
-Load `colourful.el`, You can clone it into `.emacs.d/` and `(require 'colourful)`; Then enable `colourful` minor mode under `emacs-lisp-mode` or `lisp-mode`.
+Load `colourful.el`, then enable `colourful` minor mode under `emacs-lisp-mode` or `lisp-mode`.
 
-Recommend settings:
+Example configuration:
 
 ``` emacs-lisp
-(add-hook 'emacs-lisp-mode-hook 'colourful-mode)
-(add-hook 'lisp-mode-hook 'colourful-mode)
+(use-package colourful
+  :vc (:url "https://github.com/calsys456/colorful"
+	        :rev :newest
+	        :branch "main")
+  :config
+  (add-hook 'emacs-lisp-mode-hook 'colourful-mode)
+  (add-hook 'lisp-mode-hook 'colourful-mode))
 ```
 
 # Acknowledgements
 
-Ported from same-named LispWorks plugin by myself.
+Ported from same-named [LispWorks plugin by ourselves](https://github.com/calsys456/lw-plugins).
 
 Support Neurodivisity & Transgender & Plurality!
