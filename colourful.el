@@ -490,7 +490,8 @@ expresion (typically defun)."
       (if (< form-start start)
           ;; If the region is inside one form 
           (let ((form-end (scan-sexps form-start 1)))
-            (if (or sly-mode slime-mode)
+            (if (or (and (boundp 'sly-mode) (symbol-value 'sly-mode))
+                    (and (boundp 'slime-mode) (symbol-value 'slime-mode)))
                 (let ((colourful-symbols
                        (colourful-compute-symbols-in-form form-start form-end)))
                   (colourful-fontify-single-form form-start form-end))
