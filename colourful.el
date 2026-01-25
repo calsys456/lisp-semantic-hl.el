@@ -506,8 +506,11 @@ expresion (typically defun)."
             (cl-loop while (setq form-end (ignore-errors (scan-sexps form-end 1)))
                      do (setq form-start form-end)
                      (setq form-start (scan-sexps form-start -1))
-                     (let ((colourful-symbols
-                            (colourful-compute-symbols-in-form form-start form-end)))
+                     (if (or (and (boundp 'sly-mode) (symbol-value 'sly-mode))
+                             (and (boundp 'slime-mode) (symbol-value 'slime-mode)))
+                         (let ((colourful-symbols
+                                (colourful-compute-symbols-in-form form-start form-end)))
+                           (colourful-fontify-single-form form-start form-end))
                        (colourful-fontify-single-form form-start form-end))
                      until (> form-end end)))))))
   nil)
