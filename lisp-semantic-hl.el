@@ -578,7 +578,7 @@ Recommend settings:
     (advice-remove 'font-lock-fontify-keywords-region 'lisp-semantic-hl-keyword-advice))
   (font-lock-flush))
 
-(defun lisp-semantic-hl-when-lisp-connected ()
+(defun lisp-semantic-hl-on-lisp-connection ()
   "Call `font-lock-flush'.
 
 Intended to be used with `sly-connected-hook' and `slime-connected-hook'."
@@ -588,10 +588,10 @@ Intended to be used with `sly-connected-hook' and `slime-connected-hook'."
     (font-lock-flush)))
 
 (when (boundp 'slime-connected-hook)
-  (add-hook 'slime-connected-hook #'lisp-semantic-hl-when-lisp-connected))
+  (add-hook 'slime-connected-hook #'lisp-semantic-hl-on-lisp-connection))
 
 (when (boundp 'sly-connected-hook)
-  (add-hook 'sly-connected-hook #'lisp-semantic-hl-when-lisp-connected))
+  (add-hook 'sly-connected-hook #'lisp-semantic-hl-on-lisp-connection))
 
 (provide 'lisp-semantic-hl)
 
