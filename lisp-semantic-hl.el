@@ -2,7 +2,10 @@
 
 ;; Copyright (C) 2025-2026 The Calendrical System
 
+;; Author: The Calendrical System <us@calsys.org>
+;; Keywords: languages, lisp, maint
 ;; URL: https://github.com/calsys456/lisp-semantic-hl.el
+
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
