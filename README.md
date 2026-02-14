@@ -1,27 +1,39 @@
-# Colourful
+Semantic Syntax Highlighting for Lisp Languages in Emacs
+========================================================
 
-Semantic Common Lisp & Elisp syntax highlight in Emacs.
+Semantic Syntax Highlighting for Common Lisp & Elisp in Emacs, based on the informations of the [global Lisp environment](https://www.lispworks.com/documentation/HyperSpec/Body/03_aaa.htm)
 
 ![screenshot](./screenshot.png)
 
-## Usage
+Usage
+-----
 
-Load `colourful.el`, then enable `colourful` minor mode under `emacs-lisp-mode` or `lisp-mode`.
+Load `lisp-semantic-hl.el`, then enable `lisp-semantic-hl` minor mode under `emacs-lisp-mode` or `lisp-mode`.
 
-Example configuration:
+Sample configuration:
 
 ``` emacs-lisp
-(use-package colourful
-  :vc (:url "https://github.com/calsys456/colorful"
-	        :rev :newest
-	        :branch "main")
-  :config
-  (add-hook 'emacs-lisp-mode-hook 'colourful-mode)
-  (add-hook 'lisp-mode-hook 'colourful-mode))
+(use-package lisp-semantic-hl
+  :vc (:url "https://github.com/calsys456/lisp-semantic-hl.el"
+            :branch "main")
+  :hook ((emacs-lisp-mode lisp-mode) . lisp-semantic-hl-mode))
 ```
 
-# Acknowledgements
+Goals
+-----
 
-Ported from same-named [LispWorks plugin by ourselves](https://github.com/calsys456/lw-plugins).
+- [] Semantic syntax highlight based on the information of the lexical environment for Common Lisp using environment inquiry APIs from CLtL2 and code injection
 
-Support Neurodivisity & Transgender & Plurality!
+----------------
+Acknowledgements
+----------------
+
+Ported from the [LispWorks plugin by ourselves](https://github.com/calsys456/lw-plugins), originally named "colourful". 
+
+Similar facility for [Lem](https://github.com/lem-project/lem) can be found [here](https://gist.github.com/calsys456/9acae9310934cd7f2b1066b583dcebe1#file-colourful-lisp) as a reference.
+
+Thanks our sister Simone, and our lover misaka18931, who help and support me.
+
+Supporting Neurodivisity & Transgender & Plurality!
+
+🏳️‍🌈🏳️‍⚧️

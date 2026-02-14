@@ -1,10 +1,31 @@
-;;; colourful.el -*- lexical-binding:t -*-
-;; Copyright (C) 2025 The Calendrical System
-;; SPDX-License-Identifier: 0BSD
+;;; lisp-semantic-hl.el --- Semantic Syntax Highlighting for Lisp Languages.  -*- lexical-binding:t -*-
 
-;; Utils
+;; Copyright (C) 2025-2026 The Calendrical System
 
-(defcustom colourful-loop-keywords-names
+;; URL: https://github.com/calsys456/lisp-semantic-hl.el
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;; Semantic Syntax Highlighting for Common Lisp & Elisp in Emacs,
+;; based on the informations of the global Lisp environment.
+
+;;; Code:
+
+;;; Utils
+
+(defcustom lisp-semantic-hl-loop-keywords-names
   '("named"
     "initially" "finally" "for" "as" "with"
     "do" "collect" "collecting" "append"
@@ -12,16 +33,23 @@
     "counting" "sum" "summing" "maximize" "return" "loop-finish"
     "maximizing" "minimize" "minimizing" "doing"
     "thereis" "always" "never" "if" "when"
-    "unless" "repeat" "while" "until"
+    "unless" "repeat" "while" "until" "by"
     "=" "and" "it" "else" "end" "from" "upfrom"
     "above" "below" "to" "upto" "downto" "downfrom"
-    "in" "on" "then" "across" "being" "each" "the" "hash-key"
+    "in" "on" "in-ref" "on-ref" "then" "across"
+    "being" "each" "the" "hash-key"
     "hash-keys" "of" "using" "hash-value" "hash-values"
     "symbol" "symbols" "present-symbol"
     "present-symbols" "external-symbol"
-    "external-symbols" "fixnum" "float" "of-type")
-  "Loop keywords from https://lispcookbook.github.io/cl-cookbook/iteration.html#appendix-list-of-loop-keywords"
-  :group 'colourful
+    "external-symbols" "fixnum" "float" "of-type"
+    ;; Emacs cl-loop
+    "frame" "frames" "screen" "screens" "buffer" "buffers"
+    "window" "windows" "overlay" "overlays" "extent" "extents"
+    "interval" "intervals" "property"
+    "key-code" "key-codes" "key-seq" "key-seqs" "key-binding" "key-bindings"
+    "concat" "vconcat")
+  "Loop keywords from cl-macs.el & https://lispcookbook.github.io/cl-cookbook/iteration.html#appendix-list-of-loop-keywords ."
+  :group 'lisp-semantic-hl
   :type '(list string))
 
 ;; From lisp-mode.el
@@ -80,41 +108,41 @@
         (el-errs (append (mapcar (lambda (s) (concat "cl-" s)) cl-lib-errs)
                          lisp-errs el-errs))
         (cl-errs (append lisp-errs cl-lib-errs cl-errs)))
-    (defcustom colourful-el-keywords-names
+    (defcustom lisp-semantic-hl-el-keywords-names
       el-defs
       "Elisp keyword symbol names. From lisp-mode.el"
-      :group 'colourful
+      :group 'lisp-semantic-hl
       :type '(list string))
 
-    (defcustom colourful-cl-keywords-names
+    (defcustom lisp-semantic-hl-cl-keywords-names
       (append cl-defs cl-kws)
       "Common Lisp keyword symbol names. From lisp-mode.el"
-      :group 'colourful
+      :group 'lisp-semantic-hl
       :type '(list string))
 
-    (defcustom colourful-el-errors-names
+    (defcustom lisp-semantic-hl-el-errors-names
       el-errs
       "Elisp error symbol names. From lisp-mode.el"
-      :group 'colourful
+      :group 'lisp-semantic-hl
       :type '(list string))
 
-    (defcustom colourful-cl-errors-names
+    (defcustom lisp-semantic-hl-cl-errors-names
       cl-errs
       "Common Lisp error symbol names. From lisp-mode.el"
-      :group 'colourful
+      :group 'lisp-semantic-hl
       :type '(list string))))
 
-(defun colourful-collect-forms (point)
+(defun lisp-semantic-hl-collect-forms (point)
   "Collect forms inside ansexp from starting.
 
-Point should be putted at (|foo bar)"
+POINT should be putted at (|foo bar)"
   (cl-loop initially (setq end point)
            for end = (ignore-errors (scan-sexps end 1))
            for start = (ignore-errors (scan-sexps end -1))
            while (and start end)
            collect (list start end)))
 
-(defun colourful-count-success-quotes-before (point)
+(defun lisp-semantic-hl-count-success-quotes-before (point)
   "Count success (not be quoted) string-quote before POINT."
   (let ((count 0))
     (save-excursion
@@ -128,8 +156,8 @@ Point should be putted at (|foo bar)"
          (cl-incf count)))
       count)))
 
-(defun colourful-try-skip-a-quote-backward (point)
-  "Try to skip a success (not be quoted) string-quote backward."
+(defun lisp-semantic-hl-try-skip-a-quote-backward (point)
+  "Try to skip a success (not be quoted) string-quote backward from POINT."
   (cl-loop with min = (point-min)
            until (and (eql (char-after point) ?\")
                       (if (eql (char-before point) ?\\)
@@ -143,8 +171,8 @@ Point should be putted at (|foo bar)"
            while (> point min))
   point)
 
-(defun colourful-try-skip-a-quote-forward (point)
-  "Try to skip a success (not be quoted) string-quote forward."
+(defun lisp-semantic-hl-try-skip-a-quote-forward (point)
+  "Try to skip a success (not be quoted) string-quote forward from POINT."
   (cl-loop with max = (point-max)
            until (and (eql (char-before point) ?\")
                       (if (eql (char-before (1- point)) ?\\)
@@ -158,17 +186,20 @@ Point should be putted at (|foo bar)"
            while (< point max))
   point)
 
-;; Fontifying
+(defsubst lisp-semantic-hl--apply-highlight (start end attr)
+  "Unique API for applying highlight.
 
-(defun colourful-apply-highlight (start end attr)
-  "Unique API for applying highlight."
+In Emacs it just forwards START, END and ATTR to
+`font-lock-append-text-property'."
   (font-lock-append-text-property start end 'face attr))
 
 
-;; Fontify Symbols Functions
+;;; Fontify Symbols Functions
 
-(defun colourful-fontify-symbol-elisp (start end)
-  "Fontify ELisp Symbol"
+;; Elisp
+
+(defun lisp-semantic-hl-fontify-symbol-elisp (start end)
+  "Fontify single ELisp Symbol from START to END."
   (let* ((str (buffer-substring-no-properties start end))
          (sym (intern-soft str)))
     (let ((face (cond ((or (eq sym t)
@@ -176,9 +207,9 @@ Point should be putted at (|foo bar)"
                        'font-lock-keyword-face)
                       ((null sym) nil)
                       ((or (special-form-p sym)
-                           (cl-member sym colourful-el-keywords-names :test #'string=))
+                           (cl-member sym lisp-semantic-hl-el-keywords-names :test #'string=))
                        'font-lock-keyword-face)
-                      ((cl-member sym colourful-el-errors-names :test #'string=)
+                      ((cl-member sym lisp-semantic-hl-el-errors-names :test #'string=)
                        'font-lock-warning-face)
                       ((macrop sym)
                        'font-lock-type-face)
@@ -190,13 +221,15 @@ Point should be putted at (|foo bar)"
                        'font-lock-type-face)
                       ((fboundp sym) 'font-lock-function-name-face)
                       ((boundp sym) 'font-lock-variable-use-face))))
-      (when face (colourful-apply-highlight start end face)))))
+      (when face (lisp-semantic-hl--apply-highlight start end face)))))
 
-(defvar colourful-symbols nil
+;; Common Lisp
+
+(defvar lisp-semantic-hl--symbols nil
   "Lexical bounded varable for Common Lisp symbol informations to be fontified.")
 
-(defun colourful-read-string (str)
-  "Bulk read all symbols inside a string."
+(defun lisp-semantic-hl-read-string (str)
+  "Bulk read all symbols inside STR."
   (with-temp-buffer
     (insert str)
     (let ((end-place (point))
@@ -214,36 +247,43 @@ Point should be putted at (|foo bar)"
           (when symbols (setq result (nconc result symbols)))))
       (delete-dups result))))
 
-(defcustom colourful-compute-symbols-timeout 1.5
-  "Timeout for collecting symbol informations."
+(defcustom lisp-semantic-hl-compute-symbols-timeout 1.5
+  "Timeout for collecting symbol informations from the Common Lisp environment via Slime or Sly."
   :type 'number
-  :group 'colourful)
+  :group 'lisp-semantic-hl)
 
 ;; In Common Lisp, we can't query the symbol information by the time
 ;; we're parsing it, as the sly/slime-eval function will take
 ;; significant time. So we need to prepare the information of all
 ;; symbols inside the region in a single query, before we start
 ;; parsing the region.
-(defun colourful-compute-symbols-in-form (start end)
+(defun lisp-semantic-hl-compute-symbols-in-form (start end)
+  "Compute symbol informations in form from START to END, for later use."
   (let ((lisp-eval (cond ((and (fboundp 'sly-connected-p)
-                               (funcall 'sly-connected-p))
+                               (funcall 'sly-connected-p)
+                               (and (boundp 'sly-mode)
+                                    (symbol-value 'sly-mode)))
                           'sly-eval)
                          ((and (fboundp 'slime-connected-p)
-                               (funcall 'slime-connected-p))
+                               (funcall 'slime-connected-p)
+                               (and (boundp 'sly-mode)
+                                    (symbol-value 'sly-mode)))
                           'slime-eval)))
-        (buffer-pak (when-let (pak (funcall (if (fboundp 'sly-current-package)
-                                                'sly-current-package
-                                              'slime-current-package)))
+        (buffer-pak (when-let* ((pak-func (cond ((fboundp 'sly-current-package)
+                                                 'sly-current-package)
+                                                ((fboundp 'slime-current-package)
+                                                 'slime-current-package)))
+                                (pak (funcall pak-func)))
                       (upcase (string-trim pak "[#:\"]" "[#:\"]"))))
         lst)
     (when lisp-eval
       (let ((obarray (obarray-make)))
-        (dolist (obj (colourful-read-string
+        (dolist (obj (lisp-semantic-hl-read-string
                       (buffer-substring-no-properties start end)))
-          (unless (or (cl-member (symbol-name obj) colourful-cl-keywords-names :test #'string=)
-                      (cl-member (symbol-name obj) colourful-cl-errors-names :test #'string=))
+          (unless (or (cl-member (symbol-name obj) lisp-semantic-hl-cl-keywords-names :test #'string=)
+                      (cl-member (symbol-name obj) lisp-semantic-hl-cl-errors-names :test #'string=))
             (push (split-string (symbol-name obj) ":") lst))))
-      (with-timeout (colourful-compute-symbols-timeout)
+      (with-timeout (lisp-semantic-hl-compute-symbols-timeout)
         (funcall
          lisp-eval
          `(cl:let (result)
@@ -280,42 +320,42 @@ Point should be putted at (|foo bar)"
                (cl:push (cl:cons split face) result)))
            result))))))
 
-(defun colourful-fontify-symbol-cl (start end)
-  "Fontify Common Lisp Symbol"
+(defun lisp-semantic-hl-fontify-symbol-cl (start end)
+  "Fontify single Common Lisp symbol from START to END.
+
+`lisp-semantic-hl--symbols' should be bound."
   (when (or (and (fboundp 'sly-connected-p)
                  (funcall 'sly-connected-p))
             (and (fboundp 'slime-connected-p)
                  (funcall 'slime-connected-p)))
     (let* ((str (buffer-substring-no-properties start end))
            (split (split-string str ":"))
-           (face (cond ((member str colourful-cl-keywords-names)
+           (face (cond ((member str lisp-semantic-hl-cl-keywords-names)
                         'font-lock-keyword-face)
-                       ((member str colourful-cl-errors-names)
+                       ((member str lisp-semantic-hl-cl-errors-names)
                         'font-lock-warning-face)
-                       (t (cdr (assoc split colourful-symbols))))))
+                       (t (cdr (assoc split lisp-semantic-hl--symbols))))))
       (if (and (> (length split) 1)
                (> (length (car split)) 0))
           (let ((sep (+ start (+ (length (car split))
                                  (1- (length split))))))
-            (colourful-apply-highlight start sep 'font-lock-type-face)
-            (when face (colourful-apply-highlight sep end face)))
-        (when face (colourful-apply-highlight start end face))))))
+            (lisp-semantic-hl--apply-highlight start sep 'font-lock-type-face)
+            (when face (lisp-semantic-hl--apply-highlight sep end face)))
+        (when face (lisp-semantic-hl--apply-highlight start end face))))))
 
 
-;; Fontify Symbol - List - Symbol recursion
+;;; Fontify Symbol - List - Symbol Recursion
 
-(defun colourful-fontify-symbol (start end)
-  "Fontify a symbol, without prefix."
+(defun lisp-semantic-hl-fontify-symbol (start end)
+  "Fontify single symbol from START to END, without prefix."
   (if (eq major-mode 'emacs-lisp-mode)
-      (colourful-fontify-symbol-elisp start end)
-    (when (or (and (fboundp 'sly-connected-p)
-                   (funcall 'sly-connected-p))
-              (and (fboundp 'slime-connected-p)
-                   (funcall 'slime-connected-p)))
-      (colourful-fontify-symbol-cl start end))))
+      (lisp-semantic-hl-fontify-symbol-elisp start end)
+    (lisp-semantic-hl-fontify-symbol-cl start end)))
 
-(defun colourful-fontify-single-form (start end)
-  "Fontify a single form, can be a symbol or a list, with prefix characters.
+(defun lisp-semantic-hl-fontify-single-form (start end)
+  "Fontify a single form from START to END.
+
+The form can be a symbol or a list, with prefix characters.
 
 This function is used to separate prefix & form, colouring prefix
 characters, sending rest of the form to fontify-list or
@@ -325,78 +365,77 @@ fontify-symbol."
          (point      (point))
          (syntax     (syntax-class (syntax-after point))))
     (when (cl-plusp prefix-len)
-      (colourful-apply-highlight start point 'font-lock-negation-char-face))
+      (lisp-semantic-hl--apply-highlight start point 'font-lock-negation-char-face))
     (pcase syntax
-      ((or 2 3) (colourful-fontify-symbol point end))
-      (4        (colourful-fontify-list   point end)))))
+      ((or 2 3) (lisp-semantic-hl-fontify-symbol point end))
+      (4        (lisp-semantic-hl-fontify-list   point end)))))
 
-(defun colourful-fontify-list (start &optional end)
-  "Parse items inside the list, sends them to corresponding fontify
-functions."
+(defun lisp-semantic-hl-fontify-list (start &optional end)
+  "Parse items inside the list from START to END, dispatch them to corresponding fontify functions."
   (setq start (scan-lists start 1 -1))
   ;; Collect sub forms inside the list
-  (when-let (forms (colourful-collect-forms start))
+  (when-let (forms (lisp-semantic-hl-collect-forms start))
     (let ((1st (apply #'buffer-substring-no-properties (car forms))))
       ;; We can add conditions here, to apply custom fontify
       ;; function for specific clause
       (cond ((cl-member 1st '("declare" "proclaim" "declaim") :test #'string-equal)
-             (colourful-fontify-declaration-list forms))
+             (lisp-semantic-hl-fontify-declaration-list forms))
             ((cl-member 1st '("loop" "cl-loop") :test #'string-equal)
-             (colourful-fontify-loop forms))
+             (lisp-semantic-hl-fontify-loop forms))
             ((cl-member 1st '("let" "let*" "when-let" "when-let*" "if-let" "if-let*"
                               "prog" "prog*"
                               "dolist" "cl-dolist" "dotimes" "cl-dotimes" "seq-doseq"
                               "do-symbols" "do-all-symbols" "cl-do-symbols" "cl-do-all-symbols"
                               "with-slots" "with-accessors")
                         :test #'string-equal)
-             (colourful-fontify-let forms))
+             (lisp-semantic-hl-fontify-let forms))
             ((cl-member 1st '("lambda"
                               "multiple-value-bind" "cl-multiple-value-bind"
                               "destructuring-bind" "cl-destructuring-bind"
                               "with-gensyms" "with-unique-names")
                         :test #'string-equal)
-             (colourful-fontify-ordinary-lambda-list-at-1 forms))
+             (lisp-semantic-hl-fontify-lambda-list-at-1 forms))
             ((cl-member 1st '("defun" "defmacro" "defsubst" "defalias")
                         :test #'string-equal)
-             (colourful-fontify-ordinary-lambda-list-at-2 forms))
-            (t (dolist (l forms) (apply 'colourful-fontify-single-form l)))))))
+             (lisp-semantic-hl-fontify-lambda-list-at-2 forms))
+            (t (dolist (l forms) (apply 'lisp-semantic-hl-fontify-single-form l)))))))
 
 
-;; Special fontify forms
+;;; Special Fontify Forms
 
 ;; loop
-(defun colourful-fontify-loop (lst)
-  "Highlight loop keywords"
-  (apply #'colourful-fontify-symbol (pop lst))
+(defun lisp-semantic-hl-fontify-loop (lst)
+  "Highlight loop keywords for LST."
+  (apply #'lisp-semantic-hl-fontify-symbol (pop lst))
   (dolist (form lst)
     (let* ((start (car form))
            (end (cadr form))
            (str (buffer-substring-no-properties start end)))
-      (if (cl-member str colourful-loop-keywords-names :test #'string-equal)
-          (colourful-apply-highlight start end 'font-lock-builtin-face)
-        (colourful-fontify-single-form start end)))))
+      (if (cl-member str lisp-semantic-hl-loop-keywords-names :test #'string-equal)
+          (lisp-semantic-hl--apply-highlight start end 'font-lock-builtin-face)
+        (lisp-semantic-hl-fontify-single-form start end)))))
 
 ;; declare, declaim, proclaim
-(defun colourful-fontify-declaration-list (lst)
-  "Highlight declarations (declare, declaim, proclaim)"
+(defun lisp-semantic-hl-fontify-declaration-list (lst)
+  "Highlight declarations (declare, declaim, proclaim) for LST."
   (let ((1st (pop lst)))
-    (colourful-apply-highlight (car 1st) (cadr 1st) 'font-lock-preprocessor-face))
+    (lisp-semantic-hl--apply-highlight (car 1st) (cadr 1st) 'font-lock-preprocessor-face))
   (dolist (form lst)
     (let* ((start (car form)))
       (goto-char start)
       (when (cl-plusp (skip-chars-forward "#'@,`"))
-        (colourful-apply-highlight start (point) 'font-lock-preprocessor-face))
+        (lisp-semantic-hl--apply-highlight start (point) 'font-lock-preprocessor-face))
       (when (= (char-after) ?\()
         (when-let (sub (scan-lists (point) 1 -1))
-          (let ((children (colourful-collect-forms sub)))
-            (when children (colourful-fontify-declaration-list children))))))))
+          (let ((children (lisp-semantic-hl-collect-forms sub)))
+            (when children (lisp-semantic-hl-fontify-declaration-list children))))))))
 
 ;; let, ...let , do..., with-slots
-(defun colourful-fontify-let (lst)
-  "Highlight `let' form, or something behave like `let'."
+(defun lisp-semantic-hl-fontify-let (lst)
+  "Highlight LST as a `let' form, or something behave like `let'."
   (let (1st)
     (cl-destructuring-bind (start end) (pop lst)
-      (colourful-fontify-single-form start end)
+      (lisp-semantic-hl-fontify-single-form start end)
       (setq 1st (string-trim-left
                  (buffer-substring-no-properties start end)
                  "#'@,`")))
@@ -404,10 +443,10 @@ functions."
       (cl-destructuring-bind (start end) (pop lst)
         (goto-char start)
         (when (cl-plusp (skip-chars-forward "#'@,`"))
-          (colourful-apply-highlight start (point) 'font-lock-warning-face))
+          (lisp-semantic-hl--apply-highlight start (point) 'font-lock-warning-face))
         (if (= (char-after) ?\()
-            (when-let (sub (scan-lists (point) 1 -1))
-              (when-let (children (colourful-collect-forms sub))
+            (when-let* ((sub (scan-lists (point) 1 -1)))
+              (when-let* ((children (lisp-semantic-hl-collect-forms sub)))
                 (if (or (cl-member 1st '("dolist" "cl-dolist" "dotimes" "cl-dotimes"
                                          "do-symbols" "do-all-symbols")
                                    :test #'string-equal)
@@ -417,85 +456,83 @@ functions."
                                     (skip-chars-forward "#'@,`")
                                     (/= (char-after) ?\( ))))
                     (cl-destructuring-bind (start end) (car children)
-                      (colourful-apply-highlight start end 'font-lock-variable-name-face)
+                      (lisp-semantic-hl--apply-highlight start end 'font-lock-variable-name-face)
                       (dolist (c (cdr children))
-                        (apply 'colourful-fontify-single-form c)))
+                        (apply 'lisp-semantic-hl-fontify-single-form c)))
                   (dolist (child children)
                     (cl-destructuring-bind (start end) child
                       (goto-char start)
                       (when (cl-plusp (skip-chars-forward "#'@,`"))
-                        (colourful-apply-highlight start (point) 'font-lock-warning-face))
+                        (lisp-semantic-hl--apply-highlight start (point) 'font-lock-warning-face))
                       (if (= (char-after) ?\()
-                          (when-let (sub (scan-lists (point) 1 -1))
-                            (when-let (children (colourful-collect-forms sub))
+                          (when-let* ((sub (scan-lists (point) 1 -1)))
+                            (when-let* ((children (lisp-semantic-hl-collect-forms sub)))
                               (cl-destructuring-bind (start end)
                                   (car children)
-                                (colourful-apply-highlight start end 'font-lock-variable-name-face))
+                                (lisp-semantic-hl--apply-highlight start end 'font-lock-variable-name-face))
                               (dolist (c (cdr children))
-                                (apply 'colourful-fontify-single-form c))))
-                        (colourful-apply-highlight (point) end 'font-lock-variable-name-face)))))))
-          (colourful-fontify-symbol (point) end))))
+                                (apply 'lisp-semantic-hl-fontify-single-form c))))
+                        (lisp-semantic-hl--apply-highlight (point) end 'font-lock-variable-name-face)))))))
+          (lisp-semantic-hl-fontify-symbol (point) end))))
     (dolist (l lst)
-      (apply 'colourful-fontify-single-form l))))
+      (apply 'lisp-semantic-hl-fontify-single-form l))))
 
 ;; function arglist
-(defun colourful-fontify-ordinary-lambda-list-at-1 (lst)
-  "Highlight ordinary lambda list which is at the second of
-expresion (typically lambda expression)."
+(defun lisp-semantic-hl-fontify-lambda-list-at-1 (lst)
+  "Highlight lambda list which is at the second of the LST (typically lambda expression)."
   (cl-destructuring-bind (start end) (pop lst)
-    (colourful-fontify-single-form start end))
+    (lisp-semantic-hl-fontify-single-form start end))
   (when lst
     (cl-destructuring-bind (start end) (pop lst)
       (goto-char start)
       (when (cl-plusp (skip-chars-forward "#'@,`"))
-        (colourful-apply-highlight start (point) 'font-lock-warning-face))
+        (lisp-semantic-hl--apply-highlight start (point) 'font-lock-warning-face))
       (if (= (char-after) ?\()
           (when-let (sub (scan-lists (point) 1 -1))
-            (let ((children (colourful-collect-forms sub)))
+            (let ((children (lisp-semantic-hl-collect-forms sub)))
               (dolist (child children)
                 (cl-destructuring-bind (start end) child
                   (goto-char start)
                   (when (cl-plusp (skip-chars-forward "#'@,`"))
-                    (colourful-apply-highlight start (point) 'font-lock-warning-face))
+                    (lisp-semantic-hl--apply-highlight start (point) 'font-lock-warning-face))
                   (pcase (char-after)
-                    (?\( (colourful-fontify-list (point)))
-                    (?\& (colourful-apply-highlight start end 'font-lock-type-face))
-                    (_ (colourful-apply-highlight start end 'font-lock-variable-name-face)))))))
-        (colourful-fontify-symbol (point) end))))
+                    (?\( (lisp-semantic-hl-fontify-list (point)))
+                    (?\& (lisp-semantic-hl--apply-highlight start end 'font-lock-type-face))
+                    (_ (lisp-semantic-hl--apply-highlight start end 'font-lock-variable-name-face)))))))
+        (lisp-semantic-hl-fontify-symbol (point) end))))
   (dolist (l lst)
-    (apply 'colourful-fontify-single-form l)))
+    (apply 'lisp-semantic-hl-fontify-single-form l)))
 
-(defun colourful-fontify-ordinary-lambda-list-at-2 (lst)
-  "Highlight ordinary lambda list which is at the third of
-expresion (typically defun)."
+(defun lisp-semantic-hl-fontify-lambda-list-at-2 (lst)
+  "Highlight lambda list which is at the third of the LST (typically defun)."
   (cl-destructuring-bind (start end) (pop lst)
-    (colourful-fontify-single-form start end))
-  (when lst (colourful-fontify-ordinary-lambda-list-at-1 lst)))
+    (lisp-semantic-hl-fontify-single-form start end))
+  (when lst (lisp-semantic-hl-fontify-lambda-list-at-1 lst)))
 
 
-;; font-lock-mode integration
+;;; `font-lock-mode' Integration
 
-(defun colourful-fontify-keywords-region (start end)
-  "Colouring forms covered by START and END."
+(defun lisp-semantic-hl-fontify-keywords-region (start end)
+  "Highlight forms covered by START and END."
   (save-excursion
-    (when (cl-oddp (colourful-count-success-quotes-before start))
-      (setq start (colourful-try-skip-a-quote-backward start)))
-    (when (cl-oddp (colourful-count-success-quotes-before end))
-      (setq end (colourful-try-skip-a-quote-forward end)))
+    (when (cl-oddp (lisp-semantic-hl-count-success-quotes-before start))
+      (setq start (lisp-semantic-hl-try-skip-a-quote-backward start)))
+    (when (cl-oddp (lisp-semantic-hl-count-success-quotes-before end))
+      (setq end (lisp-semantic-hl-try-skip-a-quote-forward end)))
     (let ((form-start end))
       (cl-loop for pos = (ignore-errors (scan-lists form-start -1 1))
                while pos
                do (setq form-start pos)
                until (< form-start start))
       (if (< form-start start)
-          ;; If the region is inside one form 
+          ;; If the region is inside one form
           (let ((form-end (scan-sexps form-start 1)))
             (if (or (and (boundp 'sly-mode) (symbol-value 'sly-mode))
                     (and (boundp 'slime-mode) (symbol-value 'slime-mode)))
-                (let ((colourful-symbols
-                       (colourful-compute-symbols-in-form form-start form-end)))
-                  (colourful-fontify-single-form form-start form-end))
-              (colourful-fontify-single-form form-start form-end)))
+                (let ((lisp-semantic-hl--symbols
+                       (lisp-semantic-hl-compute-symbols-in-form form-start form-end)))
+                  (lisp-semantic-hl-fontify-single-form form-start form-end))
+              (lisp-semantic-hl-fontify-single-form form-start form-end)))
         ;; If the region has crossed the top-level
         (progn
           (setq form-start start)
@@ -508,42 +545,54 @@ expresion (typically defun)."
                      (setq form-start (scan-sexps form-start -1))
                      (if (or (and (boundp 'sly-mode) (symbol-value 'sly-mode))
                              (and (boundp 'slime-mode) (symbol-value 'slime-mode)))
-                         (let ((colourful-symbols
-                                (colourful-compute-symbols-in-form form-start form-end)))
-                           (colourful-fontify-single-form form-start form-end))
-                       (colourful-fontify-single-form form-start form-end))
+                         (let ((lisp-semantic-hl--symbols
+                                (lisp-semantic-hl-compute-symbols-in-form form-start form-end)))
+                           (lisp-semantic-hl-fontify-single-form form-start form-end))
+                       (lisp-semantic-hl-fontify-single-form form-start form-end))
                      until (> form-end end)))))))
   nil)
 
-(defun colourful-keyword-advice (origin start end &optional loudly)
-  (if colourful-mode
-      (progn
-        (when (fboundp 'rainbow-delimiters--propertize)
-          (save-excursion
-            (goto-char start)
-            (rainbow-delimiters--propertize end)))
-        (colourful-fontify-keywords-region start end))
-    (funcall origin start end loudly)))
+(defun lisp-semantic-hl-keyword-advice (start end &optional loudly)
+  "Advice that is intended to be added `:after' to `font-lock-fontify-keywords-region'.
+
+Call `lisp-semantic-hl-fontify-keywords-region' with START and END.
+
+LOUDLY is ignored."
+  (when (and lisp-semantic-hl-mode
+             (member major-mode '(emacs-lisp-mode lisp-mode)))
+    (lisp-semantic-hl-fontify-keywords-region start end)))
 
 
-;; Minor mode definition
+;;; Mode and Hooks
 
-(define-minor-mode colourful-mode
-  "Colourful highlight for Lisp.
+;;;###autoload
+(define-minor-mode lisp-semantic-hl-mode
+  "Semantic Syntax Highlighting for Common Lisp & Elisp in Emacs.
 
-Recommend bindings:
-\(add-hook 'emacs-lisp-mode-hook 'colourful-mode)
-\(add-hook 'lisp-mode-hook 'colourful-mode)"
-  :group 'colourful
-  (if colourful-mode
-      (advice-add 'font-lock-fontify-keywords-region :around 'colourful-keyword-advice)
-    (advice-remove 'font-lock-fontify-keywords-region 'colourful-keyword-advice))
+Recommend settings:
+\(add-hook 'emacs-lisp-mode-hook 'lisp-semantic-hl-mode)
+\(add-hook 'lisp-mode-hook 'lisp-semantic-hl-mode)"
+  :group 'lisp-semantic-hl
+  (if lisp-semantic-hl-mode
+      (advice-add 'font-lock-fontify-keywords-region :after 'lisp-semantic-hl-keyword-advice)
+    (advice-remove 'font-lock-fontify-keywords-region 'lisp-semantic-hl-keyword-advice))
   (font-lock-flush))
 
-(defun colourful-font-lock-flush-when-lisp-connected ()
-  (when colourful-mode
+(defun lisp-semantic-hl-when-lisp-connected ()
+  "Call `font-lock-flush'.
+
+Intended to be used with `sly-connected-hook' and `slime-connected-hook'."
+  (when (and lisp-semantic-hl-mode
+             (or (and (boundp 'sly-mode) (symbol-value 'sly-mode))
+                 (and (boundp 'slime-mode) (symbol-value 'slime-mode))))
     (font-lock-flush)))
 
-(provide 'colourful)
+(when (boundp 'slime-connected-hook)
+  (add-hook 'slime-connected-hook #'lisp-semantic-hl-when-lisp-connected))
 
-;;; colourful.el ends here
+(when (boundp 'sly-connected-hook)
+  (add-hook 'sly-connected-hook #'lisp-semantic-hl-when-lisp-connected))
+
+(provide 'lisp-semantic-hl)
+
+;;; lisp-semantic-hl.el ends here
