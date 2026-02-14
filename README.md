@@ -22,7 +22,7 @@ Sample configuration:
 Goals
 -----
 
-- [] Semantic syntax highlight based on the information of the lexical environment for Common Lisp using environment inquiry APIs from CLtL2 and code injection
+- [ ] Semantic syntax highlight based on the information of the lexical environment for Common Lisp using environment inquiry APIs from CLtL2 and code injection
 
 ----------------
 Acknowledgements
@@ -30,9 +30,9 @@ Acknowledgements
 
 Ported from the [LispWorks plugin by ourselves](https://github.com/calsys456/lw-plugins), originally named "colourful". 
 
-Similar facility for [Lem](https://github.com/lem-project/lem) can be found [here](https://gist.github.com/calsys456/9acae9310934cd7f2b1066b583dcebe1#file-colourful-lisp) as a reference.
+Similar function for [Lem](https://github.com/lem-project/lem) can be found [here](https://gist.github.com/calsys456/9acae9310934cd7f2b1066b583dcebe1#file-colourful-lisp) as a reference.
 
-Thanks our sister Simone, and our lover misaka18931, who help and support me.
+Thanks our sister Simone, and our lover misaka18931, who love and support us.
 
 Supporting Neurodivisity & Transgender & Plurality!
 
