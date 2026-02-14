@@ -23,6 +23,7 @@ Goals
 -----
 
 - [ ] Semantic syntax highlight based on the information of the lexical environment for Common Lisp using environment inquiry APIs from CLtL2 and code injection
+- [ ] Better support for macros
 
 ----------------
 Acknowledgements
