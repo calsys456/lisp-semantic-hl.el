@@ -1,10 +1,12 @@
-;;; lisp-semantic-hl.el --- Semantic Syntax Highlighting for Lisp Languages.  -*- lexical-binding:t -*-
+;;; lisp-semantic-hl.el --- Semantic Syntax Highlighting for Lisp Languages  -*- lexical-binding:t -*-
 
 ;; Copyright (C) 2025-2026 The Calendrical System
 
 ;; Author: The Calendrical System <us@calsys.org>
+;; Version: 0.1
 ;; Keywords: languages, lisp, maint
 ;; URL: https://github.com/calsys456/lisp-semantic-hl.el
+;; Package-Requires: ((emacs "27.1"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -247,9 +249,7 @@ In Emacs it just forwards START, END and ATTR to
         (setq last-place (point))
         (skip-chars-forward " \t\n\r\f\v(#`',@")
         (let ((symbols (ignore-errors
-                         (mapcar #'bare-symbol
-                                 (flatten-tree
-                                  (read-positioning-symbols (current-buffer)))))))
+                         (flatten-tree (read (current-buffer))))))
           (when symbols (setq result (nconc result symbols)))))
       (delete-dups result))))
 
