@@ -270,19 +270,19 @@ In Emacs it just forwards START, END and ATTR to
 (defun lisp-semantic-hl-compute-symbols-in-form (start end)
   "Compute symbol informations in form from START to END, for later use."
   (let ((lisp-eval (cond ((and (fboundp 'sly-connected-p)
-                               (funcall 'sly-connected-p)
+                               (funcall #'sly-connected-p)
                                (and (boundp 'sly-mode)
                                     (symbol-value 'sly-mode)))
                           'sly-eval)
                          ((and (fboundp 'slime-connected-p)
-                               (funcall 'slime-connected-p)
+                               (funcall #'slime-connected-p)
                                (and (boundp 'sly-mode)
                                     (symbol-value 'sly-mode)))
                           'slime-eval)))
         (buffer-pak (when-let* ((pak-func (cond ((fboundp 'sly-current-package)
-                                                 'sly-current-package)
+                                                 #'sly-current-package)
                                                 ((fboundp 'slime-current-package)
-                                                 'slime-current-package)))
+                                                 #'slime-current-package)))
                                 (pak (funcall pak-func)))
                       (upcase (string-trim pak "[#:\"]" "[#:\"]"))))
         lst)
@@ -335,9 +335,9 @@ In Emacs it just forwards START, END and ATTR to
 
 `lisp-semantic-hl--symbols' should be bound."
   (when (or (and (fboundp 'sly-connected-p)
-                 (funcall 'sly-connected-p))
+                 (funcall #'sly-connected-p))
             (and (fboundp 'slime-connected-p)
-                 (funcall 'slime-connected-p)))
+                 (funcall #'slime-connected-p)))
     (let* ((str (buffer-substring-no-properties start end))
            (split (split-string str ":"))
            (face (cond ((member str lisp-semantic-hl-cl-keywords-names)
@@ -358,7 +358,7 @@ In Emacs it just forwards START, END and ATTR to
 
 (defun lisp-semantic-hl-fontify-symbol (start end)
   "Fontify single symbol from START to END, without prefix."
-  (if (eq major-mode 'emacs-lisp-mode)
+  (if (derived-mode-p major-mode 'emacs-lisp-mode)
       (lisp-semantic-hl-fontify-symbol-elisp start end)
     (lisp-semantic-hl-fontify-symbol-cl start end)))
 
@@ -408,7 +408,7 @@ fontify-symbol."
             ((cl-member 1st '("defun" "defmacro" "defsubst" "defalias")
                         :test #'string-equal)
              (lisp-semantic-hl-fontify-lambda-list-at-2 forms))
-            (t (dolist (l forms) (apply 'lisp-semantic-hl-fontify-single-form l)))))))
+            (t (dolist (l forms) (apply #'lisp-semantic-hl-fontify-single-form l)))))))
 
 
 ;;; Special Fontify Forms
@@ -431,7 +431,7 @@ fontify-symbol."
   (let ((1st (pop lst)))
     (lisp-semantic-hl--apply-highlight (car 1st) (cadr 1st) 'font-lock-preprocessor-face))
   (dolist (form lst)
-    (let* ((start (car form)))
+    (cl-destructuring-bind (start end) form
       (goto-char start)
       (cond ((cl-plusp (forward-prefix-chars))
              (lisp-semantic-hl--apply-highlight start (point) 'font-lock-preprocessor-face)
@@ -485,7 +485,7 @@ fontify-symbol."
                              (t (lisp-semantic-hl--apply-highlight (point) end 'font-lock-variable-name-face))))))))
               (t (lisp-semantic-hl-fontify-symbol (point) end)))))
     (dolist (l lst)
-      (apply 'lisp-semantic-hl-fontify-single-form l))))
+      (apply #'lisp-semantic-hl-fontify-single-form l))))
 
 ;; function arglist
 (defun lisp-semantic-hl-fontify-lambda-list-at-1 (lst)
@@ -586,8 +586,8 @@ Recommend settings:
 \(add-hook \\='lisp-mode-hook \\='lisp-semantic-hl-mode)"
   :group 'lisp-semantic-hl
   (if lisp-semantic-hl-mode
-      (advice-add 'font-lock-fontify-keywords-region :after 'lisp-semantic-hl-keyword-advice)
-    (advice-remove 'font-lock-fontify-keywords-region 'lisp-semantic-hl-keyword-advice))
+      (advice-add 'font-lock-fontify-keywords-region :after #'lisp-semantic-hl-keyword-advice)
+    (advice-remove 'font-lock-fontify-keywords-region #'lisp-semantic-hl-keyword-advice))
   (font-lock-flush))
 
 (defun lisp-semantic-hl-on-lisp-connection ()
