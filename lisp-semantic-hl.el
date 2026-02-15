@@ -144,11 +144,12 @@
   "Collect forms inside ansexp from starting.
 
 POINT should be putted at (|foo bar)"
-  (cl-loop initially (setq end point)
-           for end = (ignore-errors (scan-sexps end 1))
-           for start = (ignore-errors (scan-sexps end -1))
-           while (and start end)
-           collect (list start end)))
+  (save-excursion
+    (cl-loop initially (setq end point)
+             for end = (ignore-errors (goto-char end) (forward-sexp 1) (point))
+             for start = (ignore-errors (forward-sexp -1) (point))
+             while (and start end)
+             collect (list start end))))
 
 (defun lisp-semantic-hl-count-success-quotes-before (point)
   "Count success (not be quoted) string-quote before POINT."
