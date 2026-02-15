@@ -151,49 +151,51 @@ POINT should be putted at (|foo bar)"
              while (and start end)
              collect (list start end))))
 
+(defun char-quoted-p (charpos)
+  "Returns true if char at CHARPOS is quoted.
+
+Elisp version of with char_quoted in src/syntax.c"
+  (cl-loop for pos downfrom charpos above (point-min)
+           for quoted = nil then (not quoted)
+           while (memql (char-syntax (char-before pos)) '(?\' ?\\))
+           finally return quoted))
+
+(defun forward-prefix-chars ()
+  "Move point forward over any number of chars with prefix syntax.
+
+Return how many chars forwarded.
+
+Reverse-directional version of `backward-prefix-chars'."
+  (cl-loop for syntax = (syntax-after (point))
+           while (and (< (point) (point-max))
+                      (or (char-quoted-p (point))
+                          (= (syntax-class syntax) 6)
+                          (cl-plusp (logand (car syntax) (ash 1 20)))))
+           do (forward-char)
+           sum 1))
+
 (defun lisp-semantic-hl-count-success-quotes-before (point)
   "Count success (not be quoted) string-quote before POINT."
-  (let ((count 0))
-    (save-excursion
-      (goto-char 0)
-      (cl-loop
-       (unless (search-forward "\"" (1+ point) t) (cl-return))
-       (when (cl-evenp (cl-loop for i downfrom -1
-                                for c = (char-before (+ (point) i))
-                                until (not (eql c ?\\))
-                                count (eql c ?\\)))
-         (cl-incf count)))
-      count)))
+  (save-excursion
+    (goto-char 0)
+    (cl-loop while (search-forward "\"" (1+ point) t)
+             count (not (char-quoted-p (1- (point)))))))
 
 (defun lisp-semantic-hl-try-skip-a-quote-backward (point)
   "Try to skip a success (not be quoted) string-quote backward from POINT."
-  (cl-loop with min = (point-min)
-           until (and (eql (char-after point) ?\")
-                      (if (eql (char-before point) ?\\)
-                          (let ((count (cl-loop for i downfrom -1
-                                                for c = (char-after (+ point i))
-                                                until (not (eql c ?\\))
-                                                count (eql c ?\\))))
-                            (cl-evenp count))
-                        t))
-           do (cl-decf point)
-           while (> point min))
-  point)
+  (save-excursion
+    (goto-char point)
+    (cl-loop while (search-backward "\"" (point-min) t)
+             until (not (char-quoted-p (point))))
+    (point)))
 
 (defun lisp-semantic-hl-try-skip-a-quote-forward (point)
   "Try to skip a success (not be quoted) string-quote forward from POINT."
-  (cl-loop with max = (point-max)
-           until (and (eql (char-before point) ?\")
-                      (if (eql (char-before (1- point)) ?\\)
-                          (let ((count (cl-loop for i downfrom -2
-                                                for c = (char-after (+ point i))
-                                                until (not (eql c ?\\))
-                                                count (eql c ?\\))))
-                            (cl-evenp count))
-                        t))
-           do (cl-incf point)
-           while (< point max))
-  point)
+  (save-excursion
+    (goto-char point)
+    (cl-loop while (search-forward "\"" (point-max) t)
+             until (not (char-quoted-p (1- (point)))))
+    (point)))
 
 (defsubst lisp-semantic-hl--apply-highlight (start end attr)
   "Unique API for applying highlight.
@@ -248,7 +250,8 @@ In Emacs it just forwards START, END and ATTR to
       (while (and (< last-place end-place)
                   (/= (point) last-place))
         (setq last-place (point))
-        (skip-chars-forward " \t\n\r\f\v(#`',@")
+        (skip-chars-forward " \t\n\r\f\v(")
+        (forward-prefix-chars)
         (let ((symbols (ignore-errors
                          (flatten-tree (read (current-buffer))))))
           (when symbols (setq result (nconc result symbols)))))
@@ -368,7 +371,7 @@ This function is used to separate prefix & form, colouring prefix
 characters, sending rest of the form to fontify-list or
 fontify-symbol."
   (goto-char start)
-  (let* ((prefix-len (skip-chars-forward "#'@,`"))
+  (let* ((prefix-len (forward-prefix-chars))
          (point      (point))
          (syntax     (syntax-class (syntax-after point))))
     (when (cl-plusp prefix-len)
@@ -430,7 +433,7 @@ fontify-symbol."
   (dolist (form lst)
     (let* ((start (car form)))
       (goto-char start)
-      (cond ((cl-plusp (skip-chars-forward "#'@,`"))
+      (cond ((cl-plusp (forward-prefix-chars))
              (lisp-semantic-hl--apply-highlight start (point) 'font-lock-preprocessor-face)
              (lisp-semantic-hl-fontify-single-form (point) end))
             ((= (char-after) ?\()
@@ -448,7 +451,7 @@ fontify-symbol."
     (when lst
       (cl-destructuring-bind (start end) (pop lst)
         (goto-char start)
-        (cond ((cl-plusp (skip-chars-forward "#'@,`"))
+        (cond ((cl-plusp (forward-prefix-chars))
                (lisp-semantic-hl--apply-highlight start (point) 'font-lock-negation-char-face)
                (lisp-semantic-hl-fontify-single-form (point) end))
               ((= (char-after) ?\()
@@ -459,8 +462,8 @@ fontify-symbol."
                                     :test #'string-equal)
                          (and (cl-member 1st '("when-let" "when-let*" "if-let" "if-let*") :test #'string-equal)
                               (progn (goto-char (caar children))
-                                     (skip-chars-forward " \n")
-                                     (/= (char-after) ?\( ))))
+                                     (skip-chars-forward " \t\n\r\f\v")
+                                     (/= (char-after) ?\())))
                      (cl-destructuring-bind (start end) (car children)
                        (lisp-semantic-hl--apply-highlight start end 'font-lock-variable-name-face)
                        (dolist (c (cdr children))
@@ -468,7 +471,7 @@ fontify-symbol."
                    (dolist (child children)
                      (cl-destructuring-bind (start end) child
                        (goto-char start)
-                       (cond ((cl-plusp (skip-chars-forward "#'@,`"))
+                       (cond ((cl-plusp (forward-prefix-chars))
                               (lisp-semantic-hl--apply-highlight start (point) 'font-lock-negation-char-face)
                               (lisp-semantic-hl-fontify-single-form (point) end))
                              ((= (char-after) ?\()
@@ -492,7 +495,7 @@ fontify-symbol."
   (when lst
     (cl-destructuring-bind (start end) (pop lst)
       (goto-char start)
-      (cond ((cl-plusp (skip-chars-forward "#'@,`"))
+      (cond ((cl-plusp (forward-prefix-chars))
              (lisp-semantic-hl--apply-highlight start (point) 'font-lock-negation-char-face)
              (lisp-semantic-hl-fontify-single-form (point) end))
             ((= (char-after) ?\( )
@@ -501,7 +504,7 @@ fontify-symbol."
                  (dolist (child children)
                    (cl-destructuring-bind (start end) child
                      (goto-char start)
-                     (if (cl-plusp (skip-chars-forward "#'@,`"))
+                     (if (cl-plusp (forward-prefix-chars))
                          (progn (lisp-semantic-hl--apply-highlight start (point) 'font-lock-negation-char-face)
                                 (lisp-semantic-hl-fontify-single-form (point) end))
                        (pcase (char-after)
