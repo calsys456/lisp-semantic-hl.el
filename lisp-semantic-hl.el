@@ -253,7 +253,8 @@ In Emacs it just forwards START, END and ATTR to
         (skip-chars-forward " \t\n\r\f\v(")
         (lisp-semantic-hl-forward-prefix-chars)
         (let ((symbols (ignore-errors
-                         (flatten-tree (read (current-buffer))))))
+                         (cl-remove-if-not #'symbolp
+                                           (flatten-tree (read (current-buffer)))))))
           (when symbols (setq result (nconc result symbols)))))
       (delete-dups result))))
 
