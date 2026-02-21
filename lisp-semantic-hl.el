@@ -59,86 +59,137 @@
   :group 'lisp-semantic-hl
   :type '(list string))
 
+(defcustom lisp-semantic-hl-el-keywords-names
+  '("defmacro" "defun" "defvar" "defsubst" "cl-defsubst" "define-inline"
+    "define-advice" "defadvice" "defalias" "define-derived-mode"
+    "define-minor-mode" "define-generic-mode" "define-global-minor-mode"
+    "define-globalized-minor-mode" "define-skeleton" "define-widget"
+    "ert-deftest" "defconst" "defcustom" "defvaralias" "defvar-local"
+    "defface" "define-error" "defgroup" "deftheme" "cl-defmacro" "cl-defsubst"
+    "cl-defun" "cl-defmethod" "cl-defgeneric" "cl-defstruct" "cl-deftype"
+    "defgeneric" "defmethod" "defclass")
+  "Elisp keyword symbol names. From lisp-mode.el"
+  :group 'lisp-semantic-hl
+  :type '(list string))
+
+(defcustom lisp-semantic-hl-cl-keywords-names
+  '("defmacro" "defun" "defvar" "defmacro" "defsubst" "defun" "defmethod"
+    "defgeneric" "defstruct" "deftype" "defgeneric" "defmethod" "defclass"
+    "defsetf" "define-method-combination" "define-condition"
+    "define-setf-expander" "define-compiler-macro" "define-modify-macro"
+    "define-symbol-macro" "defconstant" "defparameter" "defpackage" "defstruct"
+    "deftype" "cond" "if" "while" "let" "let*" "progn" "prog1" "prog2" "lambda"
+    "unwind-protect" "condition-case" "when" "unless" "with-output-to-string"
+    "handler-bind" "ignore-errors" "dotimes" "dolist" "declare" "block" "break"
+    "case" "ccase" "compiler-let" "ctypecase" "declaim" "destructuring-bind"
+    "do" "do*" "ecase" "etypecase" "eval-when" "flet" "flet*" "go"
+    "handler-case" "in-package" "labels" "letf" "locally" "loop" "macrolet"
+    "multiple-value-bind" "multiple-value-prog1" "proclaim" "prog" "prog*"
+    "progv" "restart-case" "restart-bind" "return" "return-from"
+    "symbol-macrolet" "tagbody" "the" "typecase" "with-accessors"
+    "with-compilation-unit" "with-condition-restarts" "with-hash-table-iterator"
+    "with-input-from-string" "with-open-file" "with-open-stream"
+    "with-package-iterator" "with-simple-restart" "with-slots"
+    "with-standard-io-syntax")
+  "Common Lisp keyword symbol names. From lisp-mode.el"
+  :group 'lisp-semantic-hl
+  :type '(list string))
+
+(defcustom lisp-semantic-hl-el-errors-names
+  '("cl-assert" "cl-check-type" "warn" "error" "signal" "user-error")
+  "Elisp error symbol names. From lisp-mode.el"
+  :group 'lisp-semantic-hl
+  :type '(list string))
+
+(defcustom lisp-semantic-hl-cl-errors-names
+  '("warn" "error" "signal" "assert" "check-type" "abort" "cerror")
+  "Common Lisp error symbol names. From lisp-mode.el"
+  :group 'lisp-semantic-hl
+  :type '(list string))
+
+;; Generated using code below
 ;; From lisp-mode.el
-(eval-when-compile
-  (let ((lisp-fdefs '("defmacro" "defun"))
-        (lisp-vdefs '("defvar"))
-        (lisp-kw '("cond" "if" "while" "let" "let*" "progn" "prog1"
-                   "prog2" "lambda" "unwind-protect" "condition-case"
-                   "when" "unless" "with-output-to-string" "handler-bind"
-                   "ignore-errors" "dotimes" "dolist" "declare"))
-        (lisp-errs '("warn" "error" "signal"))
-        (el-fdefs '("defsubst" "cl-defsubst" "define-inline"
-                    "define-advice" "defadvice" "defalias"
-                    "define-derived-mode" "define-minor-mode"
-                    "define-generic-mode" "define-global-minor-mode"
-                    "define-globalized-minor-mode" "define-skeleton"
-                    "define-widget" "ert-deftest"))
-        (el-vdefs '("defconst" "defcustom" "defvaralias" "defvar-local"
-                    "defface" "define-error"))
-        (el-tdefs '("defgroup" "deftheme"))
-        (el-errs '("user-error"))
-        (eieio-fdefs '("defgeneric" "defmethod"))
-        (eieio-tdefs '("defclass"))
-        (cl-lib-fdefs '("defmacro" "defsubst" "defun" "defmethod" "defgeneric"))
-        (cl-lib-tdefs '("defstruct" "deftype"))
-        (cl-lib-errs '("assert" "check-type"))
-        (cl-fdefs '("defsetf" "define-method-combination"
-                    "define-condition" "define-setf-expander"
-                    "define-compiler-macro" "define-modify-macro"))
-        (cl-vdefs '("define-symbol-macro" "defconstant" "defparameter"))
-        (cl-tdefs '("defpackage" "defstruct" "deftype"))
-        (cl-kw '("block" "break" "case" "ccase" "compiler-let" "ctypecase"
-                 "declaim" "destructuring-bind" "do" "do*"
-                 "ecase" "etypecase" "eval-when" "flet" "flet*"
-                 "go" "handler-case" "in-package"
-                 "labels" "letf" "locally" "loop"
-                 "macrolet" "multiple-value-bind" "multiple-value-prog1"
-                 "proclaim" "prog" "prog*" "progv"
-                 "restart-case" "restart-bind" "return" "return-from"
-                 "symbol-macrolet" "tagbody" "the" "typecase"
-                 "with-accessors" "with-compilation-unit"
-                 "with-condition-restarts" "with-hash-table-iterator"
-                 "with-input-from-string" "with-open-file"
-                 "with-open-stream" "with-package-iterator"
-                 "with-simple-restart" "with-slots" "with-standard-io-syntax"))
-        (cl-errs '("abort" "cerror")))
-    (let ((el-defs (append lisp-fdefs lisp-vdefs
-                           el-fdefs el-vdefs el-tdefs
-                           (mapcar (lambda (s) (concat "cl-" s))
-                                   (append cl-lib-fdefs cl-lib-tdefs))
-                           eieio-fdefs eieio-tdefs))
-          (cl-defs (append lisp-fdefs lisp-vdefs
-                           cl-lib-fdefs cl-lib-tdefs
-                           eieio-fdefs eieio-tdefs
-                           cl-fdefs cl-vdefs cl-tdefs))
-          (cl-kws (append lisp-kw cl-kw))
-          (el-errs (append (mapcar (lambda (s) (concat "cl-" s)) cl-lib-errs)
-                           lisp-errs el-errs))
-          (cl-errs (append lisp-errs cl-lib-errs cl-errs)))
-      (defcustom lisp-semantic-hl-el-keywords-names
-        el-defs
-        "Elisp keyword symbol names. From lisp-mode.el"
-        :group 'lisp-semantic-hl
-        :type '(list string))
 
-      (defcustom lisp-semantic-hl-cl-keywords-names
-        (append cl-defs cl-kws)
-        "Common Lisp keyword symbol names. From lisp-mode.el"
-        :group 'lisp-semantic-hl
-        :type '(list string))
+;; (let ((lisp-fdefs '("defmacro" "defun"))
+;;       (lisp-vdefs '("defvar"))
+;;       (lisp-kw '("cond" "if" "while" "let" "let*" "progn" "prog1"
+;;                  "prog2" "lambda" "unwind-protect" "condition-case"
+;;                  "when" "unless" "with-output-to-string" "handler-bind"
+;;                  "ignore-errors" "dotimes" "dolist" "declare"))
+;;       (lisp-errs '("warn" "error" "signal"))
+;;       (el-fdefs '("defsubst" "cl-defsubst" "define-inline"
+;;                   "define-advice" "defadvice" "defalias"
+;;                   "define-derived-mode" "define-minor-mode"
+;;                   "define-generic-mode" "define-global-minor-mode"
+;;                   "define-globalized-minor-mode" "define-skeleton"
+;;                   "define-widget" "ert-deftest"))
+;;       (el-vdefs '("defconst" "defcustom" "defvaralias" "defvar-local"
+;;                   "defface" "define-error"))
+;;       (el-tdefs '("defgroup" "deftheme"))
+;;       (el-errs '("user-error"))
+;;       (eieio-fdefs '("defgeneric" "defmethod"))
+;;       (eieio-tdefs '("defclass"))
+;;       (cl-lib-fdefs '("defmacro" "defsubst" "defun" "defmethod" "defgeneric"))
+;;       (cl-lib-tdefs '("defstruct" "deftype"))
+;;       (cl-lib-errs '("assert" "check-type"))
+;;       (cl-fdefs '("defsetf" "define-method-combination"
+;;                   "define-condition" "define-setf-expander"
+;;                   "define-compiler-macro" "define-modify-macro"))
+;;       (cl-vdefs '("define-symbol-macro" "defconstant" "defparameter"))
+;;       (cl-tdefs '("defpackage" "defstruct" "deftype"))
+;;       (cl-kw '("block" "break" "case" "ccase" "compiler-let" "ctypecase"
+;;                "declaim" "destructuring-bind" "do" "do*"
+;;                "ecase" "etypecase" "eval-when" "flet" "flet*"
+;;                "go" "handler-case" "in-package"
+;;                "labels" "letf" "locally" "loop"
+;;                "macrolet" "multiple-value-bind" "multiple-value-prog1"
+;;                "proclaim" "prog" "prog*" "progv"
+;;                "restart-case" "restart-bind" "return" "return-from"
+;;                "symbol-macrolet" "tagbody" "the" "typecase"
+;;                "with-accessors" "with-compilation-unit"
+;;                "with-condition-restarts" "with-hash-table-iterator"
+;;                "with-input-from-string" "with-open-file"
+;;                "with-open-stream" "with-package-iterator"
+;;                "with-simple-restart" "with-slots" "with-standard-io-syntax"))
+;;       (cl-errs '("abort" "cerror")))
+;;   (let ((el-defs (append lisp-fdefs lisp-vdefs
+;;                          el-fdefs el-vdefs el-tdefs
+;;                          (mapcar (lambda (s) (concat "cl-" s))
+;;                                  (append cl-lib-fdefs cl-lib-tdefs))
+;;                          eieio-fdefs eieio-tdefs))
+;;         (cl-defs (append lisp-fdefs lisp-vdefs
+;;                          cl-lib-fdefs cl-lib-tdefs
+;;                          eieio-fdefs eieio-tdefs
+;;                          cl-fdefs cl-vdefs cl-tdefs))
+;;         (cl-kws (append lisp-kw cl-kw))
+;;         (el-errs (append (mapcar (lambda (s) (concat "cl-" s)) cl-lib-errs)
+;;                          lisp-errs el-errs))
+;;         (cl-errs (append lisp-errs cl-lib-errs cl-errs)))
+;;     (insert
+;;      (format "%S\n\n%S\n\n%S\n\n%S"
+;;              `(defcustom lisp-semantic-hl-el-keywords-names
+;;                 ',el-defs
+;;                 "Elisp keyword symbol names. From lisp-mode.el"
+;;                 :group 'lisp-semantic-hl
+;;                 :type '(list string))
 
-      (defcustom lisp-semantic-hl-el-errors-names
-        el-errs
-        "Elisp error symbol names. From lisp-mode.el"
-        :group 'lisp-semantic-hl
-        :type '(list string))
+;;              `(defcustom lisp-semantic-hl-cl-keywords-names
+;;                 ',(append cl-defs cl-kws)
+;;                 "Common Lisp keyword symbol names. From lisp-mode.el"
+;;                 :group 'lisp-semantic-hl
+;;                 :type '(list string))
 
-      (defcustom lisp-semantic-hl-cl-errors-names
-        cl-errs
-        "Common Lisp error symbol names. From lisp-mode.el"
-        :group 'lisp-semantic-hl
-        :type '(list string)))))
+;;              `(defcustom lisp-semantic-hl-el-errors-names
+;;                 ',el-errs
+;;                 "Elisp error symbol names. From lisp-mode.el"
+;;                 :group 'lisp-semantic-hl
+;;                 :type '(list string))
+
+;;              `(defcustom lisp-semantic-hl-cl-errors-names
+;;                 ',cl-errs
+;;                 "Common Lisp error symbol names. From lisp-mode.el"
+;;                 :group 'lisp-semantic-hl
+;;                 :type '(list string))))))
 
 (defun lisp-semantic-hl-collect-forms (point)
   "Collect forms inside ansexp from starting.
