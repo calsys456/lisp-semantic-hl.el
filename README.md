@@ -12,7 +12,7 @@ Usage
 
 Load `lisp-semantic-hl.el`, then enable `lisp-semantic-hl` minor mode under `emacs-lisp-mode` or `lisp-mode`.
 
-Sample configuration with ![MELPA](https://melpa.org/#/getting-started):
+Sample configuration with [MELPA](https://melpa.org/#/getting-started):
 
 ``` emacs-lisp
 (use-package lisp-semantic-hl
@@ -24,7 +24,7 @@ Goals
 -----
 
 - [ ] Semantic syntax highlight based on the information of the lexical environment for Common Lisp using environment inquiry APIs from CLtL2 and code injection
-- [ ] Better support for macros
+- [X] Better support for macros
 
 ----------------
 Acknowledgements
