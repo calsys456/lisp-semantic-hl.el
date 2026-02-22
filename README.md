@@ -10,12 +10,11 @@ Usage
 
 Load `lisp-semantic-hl.el`, then enable `lisp-semantic-hl` minor mode under `emacs-lisp-mode` or `lisp-mode`.
 
-Sample configuration:
+Sample configuration with ![MELPA](https://melpa.org/#/getting-started):
 
 ``` emacs-lisp
 (use-package lisp-semantic-hl
-  :vc (:url "https://github.com/calsys456/lisp-semantic-hl.el"
-            :branch "main")
+  :ensure t
   :hook ((emacs-lisp-mode lisp-mode) . lisp-semantic-hl-mode))
 ```
 
