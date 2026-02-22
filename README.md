@@ -1,6 +1,8 @@
 Semantic Syntax Highlighting for Lisp Languages in Emacs
 ========================================================
 
+[![MELPA](https://melpa.org/packages/lisp-semantic-hl-badge.svg)](https://melpa.org/#/lisp-semantic-hl)
+
 Semantic Syntax Highlighting for Common Lisp & Elisp in Emacs, based on the informations of the [global Lisp environment](https://www.lispworks.com/documentation/HyperSpec/Body/03_aaa.htm)
 
 ![screenshot](./screenshot.png)
