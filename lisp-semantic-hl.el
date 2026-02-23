@@ -202,6 +202,13 @@ POINT should be putted at (|foo bar)"
              while (and start end)
              collect (list start end))))
 
+(defun lisp-semantic-hl-char-escaped-p (charpos)
+  "Returns true if char at CHARPOS is escaped."
+  (cl-loop for pos downfrom charpos above (point-min)
+           for quoted = nil then (not quoted)
+           while (eql (char-syntax (char-before pos)) ?\\)
+           finally return quoted))
+
 (defun lisp-semantic-hl-char-quoted-p (charpos)
   "Returns true if char at CHARPOS is quoted.
 
@@ -217,13 +224,33 @@ Elisp version of with char_quoted in src/syntax.c"
 Return how many chars forwarded.
 
 Reverse-directional version of `backward-prefix-chars'."
-  (cl-loop for syntax = (syntax-after (point))
-           while (and (not (eobp))
-                      (or (lisp-semantic-hl-char-quoted-p (point))
-                          (= (syntax-class syntax) 6)
-                          (cl-plusp (logand (car syntax) (ash 1 20)))))
-           do (forward-char)
-           sum 1))
+  (let ((count 0))
+    (while (lisp-semantic-hl-char-escaped-p (point))
+      (cl-incf count)
+      (forward-char))
+    (while (pcase (char-after)
+             ((or ?\' ?\`)
+              (cl-incf count)
+              (forward-char)
+              t)
+             (?\# (cl-incf count 2)
+                  (forward-char 2)
+                  t)
+             (?\, (cl-incf count)
+                  (forward-char 1)
+                  (when (= (char-after) ?\@)
+                    (cl-incf count)
+                    (forward-char 1))
+                  t)
+             (?\? (when (derived-mode-p 'emacs-lisp-mode)
+                    (cl-incf count)
+                    (forward-char 1)
+                    (when (= (char-after) ?\\)
+                      (cl-incf count)
+                      (forward-char 1)))
+                  nil)
+             (_ nil)))
+    count))
 
 (defun lisp-semantic-hl-count-success-quotes-before (point)
   "Count success (not be quoted) string-quote before POINT."
